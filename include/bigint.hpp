@@ -56,11 +56,22 @@ public:
         mpn_set_str(limbs.data(), str_bytes.data(), str.size(), base);
     }
 
-    // Example of addition (not implemented)
-    BigInt operator+(const BigInt& other) const {
-        BigInt result;
-        // TODO: Implement (use mpn_add_n)
-        return result;
+
+    // Add another BigInt of possibly different size, store result in 'result'.
+    template <size_t OtherBits>
+    bool add(const BigInt<OtherBits>& other, BigInt& result) const {
+        constexpr size_t SelfLimbs = NumLimbs;
+        constexpr size_t OtherLimbs = (OtherBits + limb_bit_count - 1) / limb_bit_count;
+
+        limb_t carry = 0;
+
+        if constexpr (SelfLimbs >= OtherLimbs) {
+            carry = mpn_add(result.data().data(), limbs.data(), SelfLimbs, other.data().data(), OtherLimbs);
+        } else {
+            carry = mpn_add(result.data().data(), other.data().data(), OtherLimbs, limbs.data(), SelfLimbs);
+        }
+
+        return carry != 0;
     }
 
     // Clear to zero

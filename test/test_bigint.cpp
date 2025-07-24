@@ -35,10 +35,15 @@ TEST(BigIntToStringTest, ZeroValue) {
     EXPECT_EQ(z.to_string(16), "0");
 }
 
-// Addition stub (not implemented): result should be zero
-TEST(BigIntArithmeticTest, AddStub) {
+// Basic addition test
+TEST(BigIntArithmeticTest, AddBasic) {
     BigInt<256> a(123456789);
     BigInt<256> b(987654321);
-    BigInt<256> c = a + b;
-    EXPECT_EQ(c.to_string(10), "0");
+    BigInt<256> result;
+
+    bool carry = a.add(b, result);
+
+    // 123456789 + 987654321 = 1111111110
+    EXPECT_EQ(result.to_string(10), "1111111110");
+    EXPECT_FALSE(carry); // No carry expected
 }
