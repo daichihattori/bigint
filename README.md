@@ -16,3 +16,8 @@ brew install gmp
 cmake -S . -B build
 cmake --build build -j
 ```
+
+```
+cd build
+ctest
+```

@@ -4,6 +4,8 @@
 #include <cstddef>
 #include <gmp.h>
 #include <iostream>
+#include <vector>
+#include <cctype>
 
 namespace bigint {
 
@@ -107,21 +109,3 @@ private:
 };
 
 } // namespace bigint
-
-int main() {
-    using namespace bigint;
-
-    BigInt<256> a(123456789);
-    BigInt<256> b(987654321);
-    std::cout << "a = " << a.to_string() << std::endl;
-
-    BigInt<256> s_a("123456789", 10);
-    BigInt<256> s_b("987654321", 10);
-    std::cout << "a = " << a.to_string() << std::endl;
-
-    BigInt<256> c = a + b;
-
-    std::cout << "a + b = " << c.to_string() << std::endl;
-
-    return 0;
-}
