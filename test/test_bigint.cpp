@@ -60,3 +60,15 @@ TEST(BigIntArithmeticTest, SubBasic) {
     EXPECT_EQ(result.to_string(10), "864197532");
     EXPECT_FALSE(borrow); // No borrow expected
 }
+
+// Basic multiplication test
+TEST(BigIntArithmeticTest, MulBasic) {
+    BigInt<256> a(123456);
+    BigInt<256> b(7890);
+    BigInt<512> result;
+
+    a.mul(b, result);
+
+    // 123456 * 7890 = 974067840
+    EXPECT_EQ(result.to_string(10), "974067840");
+}

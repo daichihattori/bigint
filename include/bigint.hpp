@@ -91,6 +91,21 @@ public:
         return borrow != 0;
     }
 
+    template <size_t OtherBits, size_t ResultBits>
+    void mul(const BigInt<OtherBits>& other, BigInt<ResultBits>& result) const {
+        constexpr size_t SelfLimbs = NumLimbs;
+        constexpr size_t OtherLimbs = (OtherBits + limb_bit_count - 1) / limb_bit_count;
+        constexpr size_t ResultLimbs = (ResultBits + limb_bit_count - 1) / limb_bit_count;
+
+        result.clear();
+
+        if constexpr (SelfLimbs >= OtherLimbs) {
+            mpn_mul(result.data().data(), limbs.data(), SelfLimbs, other.data().data(), OtherLimbs);
+        } else {
+            mpn_mul(result.data().data(), other.data().data(), OtherLimbs, limbs.data(), SelfLimbs);
+        }
+    }
+
     // Clear to zero
     void clear() {
         limbs.fill(0);
@@ -132,6 +147,7 @@ public:
 
         return result;
     }
+    
 private:
     Storage limbs;
 };
