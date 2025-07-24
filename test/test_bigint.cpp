@@ -47,3 +47,16 @@ TEST(BigIntArithmeticTest, AddBasic) {
     EXPECT_EQ(result.to_string(10), "1111111110");
     EXPECT_FALSE(carry); // No carry expected
 }
+
+// Basic subtraction test
+TEST(BigIntArithmeticTest, SubBasic) {
+    BigInt<256> a(987654321);
+    BigInt<256> b(123456789);
+    BigInt<256> result;
+
+    bool borrow = a.sub(b, result);
+
+    // 987654321 - 123456789 = 864197532
+    EXPECT_EQ(result.to_string(10), "864197532");
+    EXPECT_FALSE(borrow); // No borrow expected
+}

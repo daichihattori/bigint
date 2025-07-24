@@ -74,6 +74,23 @@ public:
         return carry != 0;
     }
 
+    // Subtract another BigInt of possibly different size, store result in 'result'.
+    template <size_t OtherBits>
+    bool sub(const BigInt<OtherBits>& other, BigInt& result) const {
+        constexpr size_t SelfLimbs = NumLimbs;
+        constexpr size_t OtherLimbs = (OtherBits + limb_bit_count - 1) / limb_bit_count;
+
+        limb_t borrow = 0;
+
+        if constexpr (SelfLimbs >= OtherLimbs) {
+            borrow = mpn_sub(result.data().data(), limbs.data(), SelfLimbs, other.data().data(), OtherLimbs);
+        } else {
+            borrow = mpn_sub(result.data().data(), other.data().data(), OtherLimbs, limbs.data(), SelfLimbs);
+        }
+
+        return borrow != 0;
+    }
+
     // Clear to zero
     void clear() {
         limbs.fill(0);
