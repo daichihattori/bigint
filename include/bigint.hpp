@@ -18,11 +18,12 @@ constexpr size_t limb_bit_count = GMP_NUMB_BITS;
 // BigInt class template parameterized by number of bits
 template <size_t Bits>
 class BigInt {
-public:
-    static constexpr size_t NumLimbs = (Bits + limb_bit_count - 1) / limb_bit_count;
-
+private:
     using Storage = std::array<limb_t, NumLimbs>;
+    static constexpr size_t NumLimbs = (Bits + limb_bit_count - 1) / limb_bit_count;
+    Storage limbs;
 
+public:
     BigInt() {
         limbs.fill(0);
     }
@@ -92,18 +93,19 @@ public:
     }
 
     template <size_t OtherBits, size_t ResultBits>
-    void mul(const BigInt<OtherBits>& other, BigInt<ResultBits>& result) const {
+    bool mul(const BigInt<OtherBits>& other, BigInt<ResultBits>& result) const {
         constexpr size_t SelfLimbs = NumLimbs;
         constexpr size_t OtherLimbs = (OtherBits + limb_bit_count - 1) / limb_bit_count;
         constexpr size_t ResultLimbs = (ResultBits + limb_bit_count - 1) / limb_bit_count;
 
         result.clear();
-
+        limb_t carry = 0;
         if constexpr (SelfLimbs >= OtherLimbs) {
-            mpn_mul(result.data().data(), limbs.data(), SelfLimbs, other.data().data(), OtherLimbs);
+            carry = mpn_mul(result.data().data(), limbs.data(), SelfLimbs, other.data().data(), OtherLimbs);
         } else {
-            mpn_mul(result.data().data(), other.data().data(), OtherLimbs, limbs.data(), SelfLimbs);
+            carry = mpn_mul(result.data().data(), other.data().data(), OtherLimbs, limbs.data(), SelfLimbs);
         }
+        return carry != 0;
     }
 
     // Clear to zero
@@ -155,8 +157,14 @@ public:
         return {result, carry};
     }
 
-private:
-    Storage limbs;
+    // Returns a pair of (result, carry) for multiplication.
+    std::pair<BigInt, bool> mul_ret(const BigInt& other) const {
+        BigInt result;
+        bool carry = this->mul(other, result);
+        return {result, carry};
+    }
+
+
 };
 
 } // namespace bigint
