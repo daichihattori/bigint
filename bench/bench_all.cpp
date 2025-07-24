@@ -17,38 +17,30 @@ struct BenchData {
     }
 };
 
-template<int Bits>
-static void BM_AddWithResultArg(benchmark::State& state) {
-    BenchData data(state.range(0));
-    BigInt<Bits> a(data.a_str), b(data.b_str), result;
+static void BM_LimbInit(benchmark::State& state) {
+    mp_size_t size = (state.range(0) + 63) / 64;
     for (auto _ : state) {
-        benchmark::DoNotOptimize(a.add(b, result));
+        mp_limb_t a[size];
+        mpn_zero(a, size);
+        benchmark::DoNotOptimize(a[0]);
     }
 }
 
 template<int Bits>
-static void BM_AddWithPairReturn(benchmark::State& state) {
-    BenchData data(state.range(0));
-    BigInt<Bits> a(data.a_str), b(data.b_str);
+static void BM_BigIntInit(benchmark::State& state) {
     for (auto _ : state) {
-        auto pair_result = a.add_ret(b);
-        benchmark::DoNotOptimize(pair_result);
+        BigInt<Bits> a;
+        benchmark::DoNotOptimize(a);
     }
 }
 
-static void BM_MpzAdd(benchmark::State& state) {
-    BenchData data(state.range(0));
-    mpz_t a, b, result;
-    mpz_init_set_str(a, data.a_str.c_str(), 10);
-    mpz_init_set_str(b, data.b_str.c_str(), 10);
-    mpz_init(result);
+static void BM_MpzInit(benchmark::State& state) {
     for (auto _ : state) {
-        mpz_add(result, a, b);
-        benchmark::DoNotOptimize(result);
+        mpz_t a;
+        mpz_init(a);
+        benchmark::DoNotOptimize(a);
+        mpz_clear(a);
     }
-    mpz_clear(a);
-    mpz_clear(b);
-    mpz_clear(result);
 }
 
 static void BM_LimbAdd(benchmark::State& state) {
@@ -73,6 +65,33 @@ static void BM_LimbAdd(benchmark::State& state) {
 
     mpz_clear(a_z);
     mpz_clear(b_z);
+}
+
+template<int Bits>
+static void BM_BigIntAdd(benchmark::State& state) {
+    BenchData data(state.range(0));
+    BigInt<Bits> a(data.a_str);
+    BigInt<Bits> b(data.b_str);
+    for (auto _ : state) {
+        bool carry;
+        auto result = a.add(b, carry);
+        benchmark::DoNotOptimize(result);
+    }
+}
+
+static void BM_MpzAdd(benchmark::State& state) {
+    BenchData data(state.range(0));
+    mpz_t a, b, result;
+    mpz_init_set_str(a, data.a_str.c_str(), 10);
+    mpz_init_set_str(b, data.b_str.c_str(), 10);
+    mpz_init(result);
+    for (auto _ : state) {
+        mpz_add(result, a, b);
+        benchmark::DoNotOptimize(result);
+    }
+    mpz_clear(a);
+    mpz_clear(b);
+    mpz_clear(result);
 }
 
 static void BM_LimbMul(benchmark::State& state) {
@@ -100,21 +119,14 @@ static void BM_LimbMul(benchmark::State& state) {
 }
 
 template<int Bits>
-static void BM_MulWithResultArg(benchmark::State& state) {
+static void BM_BigIntMul(benchmark::State& state) {
     BenchData data(state.range(0));
-    BigInt<Bits> a(data.a_str), b(data.b_str), result;
+    BigInt<Bits> a(data.a_str);
+    BigInt<Bits> b(data.b_str);
     for (auto _ : state) {
-        benchmark::DoNotOptimize(a.mul(b, result));
-    }
-}
-
-template<int Bits>
-static void BM_MulWithPairReturn(benchmark::State& state) {
-    BenchData data(state.range(0));
-    BigInt<Bits> a(data.a_str), b(data.b_str);
-    for (auto _ : state) {
-        auto pair_result = a.mul_ret(b);
-        benchmark::DoNotOptimize(pair_result);
+        bool carry;
+        auto result = a.mul(b, carry);
+        benchmark::DoNotOptimize(result);
     }
 }
 
@@ -133,62 +145,15 @@ static void BM_MpzMul(benchmark::State& state) {
     mpz_clear(result);
 }
 
-
-
-
 BENCHMARK_MAIN();
-
-template<int Bits>
-static void BM_BigIntInit(benchmark::State& state) {
-    for (auto _ : state) {
-        BigInt<Bits> a;
-        benchmark::DoNotOptimize(a);
-    }
-}
-
-static void BM_MpzInit(benchmark::State& state) {
-    for (auto _ : state) {
-        mpz_t a;
-        mpz_init(a);
-        benchmark::DoNotOptimize(a);
-        mpz_clear(a);
-    }
-}
-
-static void BM_LimbInit(benchmark::State& state) {
-    mp_size_t size = (state.range(0) + 63) / 64;
-    for (auto _ : state) {
-        mp_limb_t a[size];
-        mpn_zero(a, size);
-        benchmark::DoNotOptimize(a[0]);
-    }
-}
-
-// BENCHMARK_TEMPLATE(BM_BigIntInit, 512)->Arg(512);
-// BENCHMARK(BM_MpzInit)->Arg(512);
-// BENCHMARK(BM_LimbInit)->Arg(512);
-
-// BENCHMARK_TEMPLATE(BM_AddWithResultArg, 512)->Arg(512);
-// BENCHMARK_TEMPLATE(BM_AddWithPairReturn, 512)->Arg(512);
-// BENCHMARK(BM_MpzAdd)->Arg(512);
-// BENCHMARK(BM_LimbAdd)->Arg(512);
-
-// BENCHMARK_TEMPLATE(BM_MulWithResultArg, 512)->Arg(512);
-// BENCHMARK_TEMPLATE(BM_MulWithPairReturn, 512)->Arg(512);
-// BENCHMARK(BM_MpzMul)->Arg(512);
-// BENCHMARK(BM_LimbMul)->Arg(512);
-
-
+BENCHMARK(BM_LimbInit)->Arg(128);
 BENCHMARK_TEMPLATE(BM_BigIntInit, 128)->Arg(128);
 BENCHMARK(BM_MpzInit)->Arg(128);
-BENCHMARK(BM_LimbInit)->Arg(128);
 
-BENCHMARK_TEMPLATE(BM_AddWithResultArg, 128)->Arg(128);
-BENCHMARK_TEMPLATE(BM_AddWithPairReturn, 128)->Arg(128);
-BENCHMARK(BM_MpzAdd)->Arg(128);
 BENCHMARK(BM_LimbAdd)->Arg(128);
+BENCHMARK_TEMPLATE(BM_BigIntAdd, 128)->Arg(128);
+BENCHMARK(BM_MpzAdd)->Arg(128);
 
-BENCHMARK_TEMPLATE(BM_MulWithResultArg, 128)->Arg(128);
-BENCHMARK_TEMPLATE(BM_MulWithPairReturn, 128)->Arg(128);
-BENCHMARK(BM_MpzMul)->Arg(128);
 BENCHMARK(BM_LimbMul)->Arg(128);
+BENCHMARK_TEMPLATE(BM_BigIntMul, 128)->Arg(128);
+BENCHMARK(BM_MpzMul)->Arg(128);

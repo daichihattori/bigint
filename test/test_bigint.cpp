@@ -39,11 +39,9 @@ TEST(BigIntToStringTest, ZeroValue) {
 TEST(BigIntArithmeticTest, AddBasic) {
     BigInt<256> a(123456789);
     BigInt<256> b(987654321);
-    BigInt<256> result;
+    bool carry;
+    auto result = a.add(b, carry);
 
-    bool carry = a.add(b, result);
-
-    // 123456789 + 987654321 = 1111111110
     EXPECT_EQ(result.to_string(10), "1111111110");
     EXPECT_FALSE(carry); // No carry expected
 }
@@ -52,11 +50,9 @@ TEST(BigIntArithmeticTest, AddBasic) {
 TEST(BigIntArithmeticTest, SubBasic) {
     BigInt<256> a(987654321);
     BigInt<256> b(123456789);
-    BigInt<256> result;
+    bool borrow;
+    auto result = a.sub(b, borrow);
 
-    bool borrow = a.sub(b, result);
-
-    // 987654321 - 123456789 = 864197532
     EXPECT_EQ(result.to_string(10), "864197532");
     EXPECT_FALSE(borrow); // No borrow expected
 }
@@ -65,10 +61,9 @@ TEST(BigIntArithmeticTest, SubBasic) {
 TEST(BigIntArithmeticTest, MulBasic) {
     BigInt<256> a(123456);
     BigInt<256> b(7890);
-    BigInt<512> result;
+    bool carry;
+    auto result = a.mul(b, carry);
 
-    a.mul(b, result);
-
-    // 123456 * 7890 = 974067840
     EXPECT_EQ(result.to_string(10), "974067840");
+    EXPECT_FALSE(carry); // No carry expected
 }

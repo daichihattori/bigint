@@ -19,8 +19,8 @@ constexpr size_t limb_bit_count = GMP_NUMB_BITS;
 template <size_t Bits>
 class BigInt {
 private:
-    using Storage = std::array<limb_t, NumLimbs>;
     static constexpr size_t NumLimbs = (Bits + limb_bit_count - 1) / limb_bit_count;
+    using Storage = std::array<limb_t, NumLimbs>;
     Storage limbs;
 
 public:
@@ -57,56 +57,6 @@ public:
         mpn_set_str(limbs.data(), str_bytes.data(), str.size(), base);
     }
 
-
-    // Add another BigInt of possibly different size, store result in 'result'.
-    template <size_t OtherBits>
-    bool add(const BigInt<OtherBits>& other, BigInt& result) const {
-        constexpr size_t SelfLimbs = NumLimbs;
-        constexpr size_t OtherLimbs = (OtherBits + limb_bit_count - 1) / limb_bit_count;
-
-        limb_t carry = 0;
-
-        if constexpr (SelfLimbs >= OtherLimbs) {
-            carry = mpn_add(result.data().data(), limbs.data(), SelfLimbs, other.data().data(), OtherLimbs);
-        } else {
-            carry = mpn_add(result.data().data(), other.data().data(), OtherLimbs, limbs.data(), SelfLimbs);
-        }
-
-        return carry != 0;
-    }
-
-    // Subtract another BigInt of possibly different size, store result in 'result'.
-    template <size_t OtherBits>
-    bool sub(const BigInt<OtherBits>& other, BigInt& result) const {
-        constexpr size_t SelfLimbs = NumLimbs;
-        constexpr size_t OtherLimbs = (OtherBits + limb_bit_count - 1) / limb_bit_count;
-
-        limb_t borrow = 0;
-
-        if constexpr (SelfLimbs >= OtherLimbs) {
-            borrow = mpn_sub(result.data().data(), limbs.data(), SelfLimbs, other.data().data(), OtherLimbs);
-        } else {
-            borrow = mpn_sub(result.data().data(), other.data().data(), OtherLimbs, limbs.data(), SelfLimbs);
-        }
-
-        return borrow != 0;
-    }
-
-    template <size_t OtherBits, size_t ResultBits>
-    bool mul(const BigInt<OtherBits>& other, BigInt<ResultBits>& result) const {
-        constexpr size_t SelfLimbs = NumLimbs;
-        constexpr size_t OtherLimbs = (OtherBits + limb_bit_count - 1) / limb_bit_count;
-        constexpr size_t ResultLimbs = (ResultBits + limb_bit_count - 1) / limb_bit_count;
-
-        result.clear();
-        limb_t carry = 0;
-        if constexpr (SelfLimbs >= OtherLimbs) {
-            carry = mpn_mul(result.data().data(), limbs.data(), SelfLimbs, other.data().data(), OtherLimbs);
-        } else {
-            carry = mpn_mul(result.data().data(), other.data().data(), OtherLimbs, limbs.data(), SelfLimbs);
-        }
-        return carry != 0;
-    }
 
     // Clear to zero
     void clear() {
@@ -149,22 +99,71 @@ public:
 
         return result;
     }
-    
-    // Returns a pair of (result, carry) for addition.
-    std::pair<BigInt, bool> add_ret(const BigInt& other) const {
-        BigInt result;
-        bool carry = this->add(other, result);
-        return {result, carry};
+
+    template <size_t OtherBits>
+    BigInt<(Bits > OtherBits ? Bits : OtherBits)> add(const BigInt<OtherBits>& other, bool &carry) const {
+        constexpr size_t SelfLimbs = (Bits + limb_bit_count - 1) / limb_bit_count;
+        constexpr size_t OtherLimbs = (OtherBits + limb_bit_count - 1) / limb_bit_count;
+        constexpr size_t ResultBits = (Bits > OtherBits ? Bits : OtherBits);
+        constexpr size_t ResultLimbs = (ResultBits + limb_bit_count - 1) / limb_bit_count;
+
+        BigInt<ResultBits> result;
+        result.clear();
+
+        limb_t tmp_carry = 0;
+
+        if constexpr (SelfLimbs >= OtherLimbs) {
+            tmp_carry = mpn_add(result.data().data(), limbs.data(), SelfLimbs, other.data().data(), OtherLimbs);
+        } else {
+            tmp_carry = mpn_add(result.data().data(), other.data().data(), OtherLimbs, limbs.data(), SelfLimbs);
+        }
+
+        carry = (tmp_carry != 0);
+        return result;
     }
 
-    // Returns a pair of (result, carry) for multiplication.
-    std::pair<BigInt, bool> mul_ret(const BigInt& other) const {
-        BigInt result;
-        bool carry = this->mul(other, result);
-        return {result, carry};
+    template <size_t OtherBits>
+    BigInt<(Bits > OtherBits ? Bits : OtherBits)> sub(const BigInt<OtherBits>& other, bool &carry) const {
+        constexpr size_t SelfLimbs = (Bits + limb_bit_count - 1) / limb_bit_count;
+        constexpr size_t OtherLimbs = (OtherBits + limb_bit_count - 1) / limb_bit_count;
+        constexpr size_t ResultBits = (Bits > OtherBits ? Bits : OtherBits);
+        constexpr size_t ResultLimbs = (ResultBits + limb_bit_count - 1) / limb_bit_count;
+
+        BigInt<ResultBits> result;
+        result.clear();
+
+        limb_t tmp_carry = 0;
+
+        if constexpr (SelfLimbs >= OtherLimbs) {
+            tmp_carry = mpn_sub(result.data().data(), limbs.data(), SelfLimbs, other.data().data(), OtherLimbs);
+        } else {
+            tmp_carry = mpn_sub(result.data().data(), other.data().data(), OtherLimbs, limbs.data(), SelfLimbs);
+        }
+
+        carry = (tmp_carry != 0);
+        return result;
     }
 
+    template <size_t OtherBits>
+    BigInt<Bits + OtherBits> mul(const BigInt<OtherBits>& other, bool& carry) const {
+        constexpr size_t SelfLimbs = (Bits + limb_bit_count - 1) / limb_bit_count;
+        constexpr size_t OtherLimbs = (OtherBits + limb_bit_count - 1) / limb_bit_count;
+        constexpr size_t ResultBits = Bits + OtherBits;
+        constexpr size_t ResultLimbs = SelfLimbs + OtherLimbs;
 
+        BigInt<ResultBits> result;
+        result.clear();
+
+        limb_t tmp_carry = 0;
+        if constexpr (SelfLimbs >= OtherLimbs) {
+            tmp_carry = mpn_mul(result.data().data(), limbs.data(), SelfLimbs, other.data().data(), OtherLimbs);
+        } else {
+            tmp_carry = mpn_mul(result.data().data(), other.data().data(), OtherLimbs, limbs.data(), SelfLimbs);
+        }
+
+        carry = (tmp_carry != 0);
+        return result;
+    }
 };
 
 } // namespace bigint
