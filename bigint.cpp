@@ -7,13 +7,13 @@
 
 namespace bigint {
 
-// GMPのLimb型（通常はunsigned long）
+// GMP's Limb type (usually unsigned long)
 using limb_t = mp_limb_t;
 
-// limbのビット数（GMPが定義している）
+// Number of bits in a limb (defined by GMP)
 constexpr size_t limb_bit_count = GMP_NUMB_BITS;
 
-// Bits単位のテンプレートBigIntクラス
+// BigInt class template parameterized by number of bits
 template <size_t Bits>
 class BigInt {
 public:
@@ -30,13 +30,13 @@ public:
         limbs[0] = static_cast<limb_t>(value);
     }
 
-    // 文字列と基数を受け取るコンストラクタ
+    // Constructor that takes a string and a base
     BigInt(const std::string& str, int base = 10) {
         limbs.fill(0);
         if (base < 2 || base > 256)
             throw std::invalid_argument("base must be in [2, 256]");
 
-        // 文字列を GMP の mpn_set_str 用バイト列に変換
+        // Convert string to byte array for GMP's mpn_set_str
         std::vector<unsigned char> str_bytes(str.size());
         for (size_t i = 0; i < str.size(); ++i) {
             char c = str[i];
@@ -50,18 +50,18 @@ public:
                 throw std::invalid_argument("invalid character in input string");
         }
 
-        // GMP limb 配列へ変換
+        // Convert to GMP limb array
         mpn_set_str(limbs.data(), str_bytes.data(), str.size(), base);
     }
 
-    // 足し算の例（未実装）
+    // Example of addition (not implemented)
     BigInt operator+(const BigInt& other) const {
         BigInt result;
-        // TODO: 実装 (mpn_add_nを使うとよい)
+        // TODO: Implement (use mpn_add_n)
         return result;
     }
 
-    // ゼロクリア
+    // Clear to zero
     void clear() {
         limbs.fill(0);
     }
@@ -79,15 +79,15 @@ public:
 
         if (actual_limbs == 0) return "0";
 
-        // base ≠ 2^k の場合は limb が壊されるのでコピー
+        // When base is not a power of 2, mpn_get_str may modify the input, so copy limbs
         std::vector<limb_t> temp_limbs(limbs.begin(), limbs.begin() + actual_limbs);
 
-        // バッファサイズは保守的に確保（十分に大きければOK）
+        // Allocate buffer size conservatively (should be large enough)
         std::vector<unsigned char> raw_buf(actual_limbs * limb_bit_count / 3 + 10);
 
         size_t count = mpn_get_str(raw_buf.data(), base, temp_limbs.data(), actual_limbs);
 
-        // ASCII変換（0〜9, A〜Z, a〜...）最大256まで対応
+        // ASCII conversion (0-9, A-Z, a-...) supports up to base 256
         std::string result;
         result.reserve(count);
         for (size_t i = 0; i < count; ++i) {
@@ -97,7 +97,7 @@ public:
             else if (digit < 36)
                 result += static_cast<char>('A' + digit - 10);
             else
-                result += static_cast<char>('a' + digit - 36);  // a〜 で拡張
+                result += static_cast<char>('a' + digit - 36);  // extended with a-
         }
 
         return result;
