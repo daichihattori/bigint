@@ -148,6 +148,13 @@ public:
         return result;
     }
     
+    // Returns a pair of (result, carry) for addition.
+    std::pair<BigInt, bool> add_ret(const BigInt& other) const {
+        BigInt result;
+        bool carry = this->add(other, result);
+        return {result, carry};
+    }
+
 private:
     Storage limbs;
 };
